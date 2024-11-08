@@ -1,5 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import chalk from 'chalk';
+import { JSDOM } from 'jsdom';
+import { render } from './render.js';
+
+const forbiddenDirs = ['node_modules'];
 
 export class Runner {
   constructor() {
@@ -8,24 +13,31 @@ export class Runner {
 
   async runTests() {
     for (let file of this.testFiles) {
+      console.log(chalk.grey(`---> ${file.shortName}`));
       const beforeEaches = [];
+
+      global.render = render;
 
       global.beforeEach = (fn) => {
         beforeEaches.push(fn);
       };
 
-      global.it = (desc, fn) => {
+      global.it = async (desc, fn) => {
         beforeEaches.forEach((func) => func());
         try {
-          fn();
-          console.log(`OK - ${desc}`);
+          await fn();
+          console.log(chalk.green(`\tOK - ${desc}`));
         } catch (err) {
-          console.log(`X - ${desc}`);
-          console.log('\t', err.message);
+          const message = err.message.replace(/\n/g, '\n\t\t');
+          console.log(chalk.red(`\tX - ${desc}`));
+          console.log(chalk.red('\t', message));
         }
       };
-
-      await import(file.name);
+      try {
+        await import(file.name);
+      } catch (err) {
+        console.log(chalk.red(err));
+      }
     }
   }
 
@@ -37,8 +49,8 @@ export class Runner {
       const stats = await fs.promises.lstat(filePath);
 
       if (stats.isFile() && file.includes('.test.js')) {
-        this.testFiles.push({ name: filePath });
-      } else if (stats.isDirectory()) {
+        this.testFiles.push({ name: filePath, shortName: file });
+      } else if (stats.isDirectory() && !forbiddenDirs.includes(file)) {
         const childFiles = await fs.promises.readdir(filePath);
         files.push(...childFiles.map((f) => path.join(file, f)));
       }

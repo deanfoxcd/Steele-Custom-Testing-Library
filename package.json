@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bin": {
     "tme": "index.js"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "jsdom": "^25.0.1"
   }
-
 }
